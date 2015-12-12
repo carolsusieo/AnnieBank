@@ -1,0 +1,52 @@
+<resources>
+    <string name="app_name">Annie\'s Bank</string>
+    <string name="action_settings">Settings</string>
+    <string name="id_label">Did it work?</string>
+    <string name="id_value">[result]</string>
+    <string name="content_label">Account Value:</string>
+    <string name="content_value">[content]</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="title_activity_rest">Annie\'s Bank Account</string>
+    <string name="logindata_label">Update Login Data</string>
+    <string name="title_activity_update_login_data">Update Login Data</string>
+    <string name="user_info">Update User Data</string>
+    <string name="lbl_username">Username:</string>
+    <string name="lbl_enter_username">Enter user name</string>
+    <string name="lbl_pwd">Password:</string>
+    <string name="lbl_enter_pwd">Enter password</string>
+    <string name="lbl_login">Store Login Information</string>
+    <string name="lbl_pwd2">Reenter password:</string>
+    <string name="lbl_login_test">Login to Host</string>
+    <string name="content_wifi">WIFI needs test</string>
+    <string name="view_account">View Account</string>
+    <string name="title_activity_input_transaction">InputTransaction</string>
+    <string name="input_tran">Input Annie\'s Expenditure</string>
+    <string name="lbl_another">Input Another</string>
+    <string name="lbl_send">Send to Host</string>
+    <string name="lbl_fld_enter_amt">Amount</string>
+    <string name="lbl_amt">Enter Amount:</string>
+    <string name="lbl_fld_tran_desc">Enter short description</string>
+    <string name="lbl_tran_desc">Description:</string>
+    <string name="update_account">Add Transaction</string>
+    <string name="lbl_enter_web2">complete url</string>
+    <string name="lbl_web1">http://www.</string>
+    <string name="lbl_enter_web1">complete url</string>
+    <string name="lbl_web2">http://www.</string>
+    <string name="useWebsite1">Use 1st URL</string>
+    <string name="httpSessionToken">/?q=services/session/token</string>
+    <string name="httpLogin">/sheet/user/login</string>
+    <string name="httpGetAmt">/sheet/sheetserve/retrieve</string>
+    <string name="httpPut">/sheet/sheetserver/update</string>
+    <string name="xmlUsername">username=</string>
+    <string name="xmlPassword">password=</string>
+    <string name="xmlLoginFrm">form_id=login_form</string>
+    <string name="xmlResult">result</string>
+    <string name="xmlData">data</string>
+    <string name="htmlContent">Content-Type</string>
+    <string name="htmlApp">application/x-www-form-urlencoded</string>
+    <string name="htmlPost">POST</string>
+    <string name="htmlAccept">accept</string>
+    <string name="htmlXml">text/xml</string>
+    <string name="htmlGet">GET</string>
+
+</resources>
