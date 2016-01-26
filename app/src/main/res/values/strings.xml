@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">Annie\'s Bank</string>
+    <string name="title_activity_rest">Annie\'s Bank Balance</string>
+    <string name="maybe">" may be: $"</string>
+    <string name="colon">" is: $"</string>
     <string name="action_settings">Settings</string>
-    <string name="id_label">Did it work?</string>
-    <string name="id_value">[result]</string>
-    <string name="content_label">Account Value:</string>
-    <string name="content_value">[content]</string>
+    <string name="lbl_comm">Comm Result:</string>
+    <string name="lbl_balance">Balance:</string>
     <string name="action_refresh">Refresh</string>
-    <string name="title_activity_rest">Annie\'s Bank Account</string>
     <string name="logindata_label">Update Login Data</string>
-    <string name="title_activity_update_login_data">Update Login Data</string>
+    <string name="title_activity_update_login_data">Login Data</string>
     <string name="user_info">Update User Data</string>
     <string name="lbl_username">Username:</string>
     <string name="lbl_enter_username">Enter user name</string>
@@ -20,7 +20,9 @@
     <string name="content_wifi">WIFI needs test</string>
     <string name="view_account">View Account</string>
     <string name="title_activity_input_transaction">InputTransaction</string>
+    <string name="title_activity_view_transactions">ViewTransactions</string>
     <string name="input_tran">Input Annie\'s Expenditure</string>
+    <string name="view_trans">View Annie\'s Stored Expenditures</string>
     <string name="lbl_another">Input Another</string>
     <string name="lbl_send">Send to Host</string>
     <string name="lbl_fld_enter_amt">Amount</string>
@@ -36,17 +38,81 @@
     <string name="httpSessionToken">/?q=services/session/token</string>
     <string name="httpLogin">/sheet/user/login</string>
     <string name="httpGetAmt">/sheet/sheetserve/retrieve</string>
-    <string name="httpPut">/sheet/sheetserver/update</string>
+    <string name="httpPut">/sheet/sheetserve/update</string>
     <string name="xmlUsername">username=</string>
     <string name="xmlPassword">password=</string>
     <string name="xmlLoginFrm">form_id=login_form</string>
+    <string name="xmlSeparator">&amp;</string>
     <string name="xmlResult">result</string>
     <string name="xmlData">data</string>
+    <string name="xmlAmt">amt=</string>
+    <string name="xmlLabel">label=</string>
+    <string name="xmlCurrency">currency=</string>
     <string name="htmlContent">Content-Type</string>
     <string name="htmlApp">application/x-www-form-urlencoded</string>
     <string name="htmlPost">POST</string>
+    <string name="htmlPut">PUT</string>
     <string name="htmlAccept">accept</string>
     <string name="htmlXml">text/xml</string>
     <string name="htmlGet">GET</string>
+    <string name="RP">RP</string>
+    <string name="USD">USD</string>
+    <string name="OTH">OTH</string>
+    <string name="userFile">userdata</string>
+    <string name="tranFile">trandata</string>
+    <string name="prefsFile">MyPrefsFile</string>
+    <string name="prefUsername">username</string>
+    <string name="prefWeb1">web1</string>
+    <string name="prefWeb2">web2</string>
+    <string name="prefUse1">useweb1</string>
+    <string name="prefPassword">password</string>
+    <string name="prefLoginVerified">login_info_verified</string>
+    <string name="preflastamt">lastamt</string>
+    <string name="unknown">unknown</string>
+    <string name="error">error</string>
+    <string name="respMsg">ResponseMessage</string>
+    <string name="respCode">ResponseCode</string>
+    <string name="ok">OK</string>
+    <string name="output">Output</string>
+    <string name="empty"> </string>
+    <string name="code">Code</string>
+    <string name="logOk">Logged In</string>
+    <string name="logFailedRetry">Log In Failed, Try Again</string>
+    <string name="logFail">Log In Failed</string>
+    <string name="checkComm">Check Connection"</string>
+    <string name="reenter">Reenter information</string>
+    <string name="userError">Username or password error</string>
+    <string name="logStored">Login Data Stored</string>
+    <string name="noInternet">No Internet Connection</string>
+    <string name="noInternet2">Your device doesn\'t have WIFI internet access</string>
+    <string name="noInternet3">No WIFI.  Application needs WIFI to complete tasks.</string>
+    <string name="wifiGood">WIFI tested and available.</string>
+    <string name="storedTrans">Stored Transactions:</string>
+    <string name="send_transaction">Send Transaction</string>
+    <string name="tran_sent">Transaction sent</string>
+    <string name="tran_failed_retry">Transaction Failed, Try Again</string>
+    <string name="tran_failed">Transaction failed</string>
+    <string name="tranNotSaved">Transaction Not Stored On Host</string>
+    <string name="tranSendLater">Store Transaction to Send Later?</string>
+    <string name="defUser">admin</string>
+    <string name="defPass">jesusIs01</string>
+    <string name="defURL">carolodiorne.com/drupal</string>
 
+    <string name="cancel">Cancel</string>
+    <string name="clearTran">Clear Values</string>
+    <string name="clearMsg">Data Will Not Be Saved</string>
+    <string name="storeTran">""</string>
+    <string name="lbl_clear">Clear Data</string>
+    <string name="lbl_store">Store Tran</string>
+    <string name="store_transaction">Store Transaction</string>
+    <string name="send_transactions">Send Transactions</string>
+    <string name="prefNumTransactions">numStoredTrans</string>
+    <string name="prefTranNumDesc">TranDesc</string>
+    <string name="prefTranNumAmt">TranAmt</string>
+    <string name="prefArrayList">arrayList</string>
+    <string name="currentBalance">Current Balance:</string>
+    <string name="SendTransactions">Sending Transactions:</string>
+    <string name="GetBalance">Get Balance From Host</string>
+    <string name="lbl_display_stored_trans">View Stored</string>
+    <string name="title_activity_view_stored_transactions">ViewStoredTransactions</string>
 </resources>

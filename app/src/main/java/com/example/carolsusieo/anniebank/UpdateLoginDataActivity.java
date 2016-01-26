@@ -1,12 +1,11 @@
 package com.example.carolsusieo.anniebank;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -15,28 +14,26 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.xmlpull.v1.XmlPullParserException;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class UpdateLoginDataActivity extends AppCompatActivity {
-    Button _loginBtn;
-    Button _loginTestBtn;
+    private Button _loginBtn;
+    private Button _loginTestBtn;
+    private TextView _loginErrorText;
 
-    UserData userData;
-    CommResult commResult;
-    Intent intentIn;
+    private UserData userData;
+    private CommResult commResult;
+    private Intent intentIn;
+    //Resources resources;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         intentIn = getIntent();
-
- //       userData = new UserData();
         Bundle bundle = intentIn.getExtras();
-        userData = (UserData) bundle.getSerializable("userdata");
+        userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
         commResult = new CommResult();
 
 
@@ -46,10 +43,11 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
 
         _loginBtn = (Button) findViewById(R.id.btn_login);
         _loginTestBtn = (Button) findViewById(R.id.btn_login_test);
+        _loginErrorText = (TextView) findViewById(R.id.loginErrorReason);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-
+/*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,7 +56,11 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+*/
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        if(actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
 
         _loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,11 +68,12 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
 
                 if (TestUsername(userData) && TestPassword(userData)) {
                         GetWebsites(userData);
-                      _loginBtn.setText("Login Data Stored");
+                      _loginBtn.setText(getString(R.string.logStored));
+                    _loginErrorText.setText(getString(R.string.empty));
 
                 } else {
-                    _loginBtn.setText("Reenter Information");
-                    // nothing stored....
+                    _loginBtn.setText(getString(R.string.reenter));
+                    _loginErrorText.setText(getString(R.string.userError));
                 }
             }
 
@@ -80,24 +83,20 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-            if(TestUsername(userData) && TestPassword(userData))
-            {
-                GetWebsites(userData);
-                // store the information so it can be used.
-                // now do a test of the communications.....
-                new LoginHttpRequest(userData, commResult,v.getContext()).execute();
+                if (TestUsername(userData) && TestPassword(userData)) {
+                    GetWebsites(userData);
+                    _loginErrorText.setText(getString(R.string.empty));
+                    // store the information so it can be used.
+                    // now do a test of the communications.....
+                    new LoginHttpRequest(userData, commResult, v.getContext()).execute();
 
-            }
-            else
-                _loginBtn.setText("Reenter Information");
-
+                } else {
+                    _loginBtn.setText(getString(R.string.reenter));
+                    _loginErrorText.setText(getString(R.string.userError));
+                }
             }
 
         });
- //       final CheckBox checkBox = (CheckBox) findViewById(R.id.checkbox_use_web1);
- //       if (checkBox.isChecked()) {
- //           checkBox.setChecked(false);
- //       }
 
     }
     public void onCheckboxClicked(View view) {
@@ -111,15 +110,10 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
                  break;
          }
     }
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-    }
     public void onBackPressed()
     {
         if(userData != null)
-         intentIn.putExtra("userdata", userData);
+         intentIn.putExtra(getString(R.string.userFile), userData);
         setResult(RESULT_OK, intentIn);
         finish();
     }
@@ -127,58 +121,47 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
 
     // we want to test the password and the reenter password have been filled out as expected and that the password and the reenter password match.
     // we might also want to add whatever other tests are specific to password and username on the host side of this system.
-
-
-    // this doesn't appear to work
+    private void setItem(int in, String inStr) {
+        EditText item = (EditText)findViewById(in);
+        item.setText(inStr);
+    }
+    private void setItem(int in,boolean inVal)
+    {
+        CheckBox checkBox = (CheckBox) findViewById(in);
+        checkBox.setChecked(inVal);
+    }
     private void SetWebsites(UserData userData) {
-        EditText web1T = (EditText)findViewById(R.id.fld_web1);
-        web1T.setText(userData.getWebsite1());
-        EditText web2T = (EditText)findViewById(R.id.fld_web2);
-        web2T.setText(userData.getWebsite2());
-       // if(userData.useWeb1()) {
-            final CheckBox checkBox = (CheckBox) findViewById(R.id.checkbox_use_web1);
-            checkBox.setChecked(userData.useWeb1());
-
-       // }
-
+        setItem(R.id.fld_web1,userData.getWebsite1());
+        setItem(R.id.fld_web2, userData.getWebsite2());
+        setItem(R.id.checkbox_use_web1, userData.useWeb1());
+    }
+    private String getItem(int in) {
+        EditText item = (EditText)findViewById(in);
+        return item.getText().toString();
     }
     private void GetWebsites(UserData userData){
-        EditText web1T = (EditText)findViewById(R.id.fld_web1);
-        userData.setWebsite1(web1T.getText().toString());
-        EditText web2T = (EditText)findViewById(R.id.fld_web2);
-        userData.setWebsite2((web2T.getText().toString()));
+        userData.setWebsite1(getItem(R.id.fld_web1));
+        userData.setWebsite2(getItem(R.id.fld_web2));
         CheckBox checkBox = (CheckBox) findViewById(R.id.checkbox_use_web1);
-        if((web2T.getText().toString().isEmpty()) || !checkBox.isChecked())
-            userData.setUseWeb1(false);
-        else
-            userData.setUseWeb1(true);
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+            if((getItem(R.id.fld_web2)).isEmpty() || !checkBox.isChecked())
+                userData.setUseWeb1(false);
+            else
+                userData.setUseWeb1(true);
+        }
     }
-
     private boolean TestPassword(UserData userData) {
         // for now, let's make sure it's filled in with a least one character
-        EditText pass1   = (EditText)findViewById(R.id.fld_pwd);
-        String password1 = pass1.getText().toString();
-        EditText pass2 = (EditText)findViewById(R.id.fld_pwd2);
-        String password2 = pass2.getText().toString();
-        return(userData.setPassword(password1,password2));
-
+        return(userData.setPassword(getItem(R.id.fld_pwd), getItem(R.id.fld_pwd2)));
     }
-
     private boolean TestUsername(UserData userData) {
-        EditText user   = (EditText)findViewById(R.id.fld_username);
-        String username = user.getText().toString();
-        return(userData.setUsername(username));
-     }
-
+        return(userData.setUsername(getItem(R.id.fld_username)));
+    }
     private void SetValues(UserData userData) {
          if(userData != null && userData.getPassword() != null) {
-            EditText pass1 = (EditText) findViewById(R.id.fld_pwd);
-            pass1.setText(userData.getPassword());
-            EditText pass2 = (EditText) findViewById(R.id.fld_pwd2);
-            pass2.setText(userData.getPassword());
-            EditText user = (EditText) findViewById(R.id.fld_username);
-            user.setText(userData.getUsername());
+             setItem(R.id.fld_pwd,userData.getPassword());
+             setItem(R.id.fld_pwd2,userData.getPassword());
+             setItem(R.id.fld_username,userData.getUsername());
              SetWebsites(userData);
         }
     }
@@ -191,76 +174,83 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
     // also getting errors on exiting out of this
     private class LoginHttpRequest extends AsyncTask<Void, Void, CommResult> {
 
-        private UserData userData;
-        CommResult getcommresult;
-        HostComm hostComm;
+        private final UserData userData;
+        final CommResult getcommresult;
+        final HostComm hostComm;
+        final ProgressDialog progress;
 
-        public LoginHttpRequest (UserData in, CommResult inget,Context contextIn) {
+        public LoginHttpRequest(UserData in, CommResult inget, Context contextIn) {
             userData = in;
             getcommresult = inget;
             hostComm = new HostComm(contextIn);
+            progress = new ProgressDialog(contextIn);
+            initiateProgress();
         }
-
-
 
         @Override
         protected CommResult doInBackground(Void... params) {
-
             /*return DontNeedToSee(getcommresult);*/
-            getcommresult.put("stage", 1);
+            getcommresult.putStage(1);
+            doProgress(1);
             CommResult retval = Stage1(getcommresult);
-
-
-            if (!isCancelled() && retval != null  && retval.getCode() == HttpURLConnection.HTTP_OK) {
-                doProgress(33);
+            if (!isCancelled() && retval != null && retval.getCode() == HttpURLConnection.HTTP_OK) {
+                doProgress(2);
                 //publishProgress(33);
-                getcommresult.put("stage", 2);
+                getcommresult.putStage(2);
                 retval = Login(retval);
-             }
+                doProgress(3);
+            }
             return retval;
         }
 
-        public void doProgress(int value){
-            publishProgress();
+        public void initiateProgress() {
+            progress.setMessage(getString(R.string.GetBalance));
+            progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            progress.setIndeterminate(true);
+            progress.show();
+            progress.setProgress(0);
         }
 
+        public void doProgress(int value) {
+            // todo determine why this is not working
+            progress.setProgress(100 / 4 * value);
 
+        }
+
+        public CommResult updateOutput(CommResult in){
+
+            in.putMessage(hostComm.getRM());
+            in.putCode( hostComm.getRC());
+            return in;
+        }
         @Override
         protected void onPostExecute(CommResult commresult) {
-
             // we need to pass the information in CommResult to the calling routine if it was set
-
             if (commresult != null) {
                 if (commresult.getStage() == 2) {
-
                     // we are logged in
                     userData.setLoggedIn(true);
-                    _loginTestBtn.setText("Logged In");
+                    _loginTestBtn.setText(getString(R.string.logOk));
+                    _loginErrorText.setText(getString(R.string.empty));
                     // indicate that the log in information as been verified
-
                 }
-                else
-                    _loginTestBtn.setText("Log In Failed, Try Again");
+                else {
+                    _loginTestBtn.setText(getString(R.string.logFailedRetry));
+                    _loginErrorText.setText(commresult.getRespMessage());
+                }
             }
-            else
-                _loginTestBtn.setText("Log In Failed");
-
+            else {
+                _loginTestBtn.setText(getString(R.string.logFail));
+                _loginErrorText.setText(getString(R.string.checkComm));
+            }
+            progress.dismiss();
         }
-
-
-
-
         private CommResult Stage1(CommResult output) {
 
             try {
                 URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpSessionToken));
-
                 hostComm.RequestCSRFToken(url);
-
-                output.put("ResponseMessage", hostComm.getRM());
-                output.put("ResponseCode", hostComm.getRC());
-
-                return output;
+                return(updateOutput(output));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -271,89 +261,72 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
         private CommResult Login(CommResult output) {
 
             try {
-
- //                 GetLoginData(output);
-
                  URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpLogin));
-
-
                 int ret = hostComm.Login(url,userData);
-
                 if(ret == HttpURLConnection.HTTP_OK) {
-                    output.put("ResponseMessage", hostComm.getRM());
-                    output.put("ResponseCode", hostComm.getRC());
-                    return output;
+                    return updateOutput(output);
                 }
                 else
                     return null;
-
-
             } catch (Throwable t) {
                 t.printStackTrace();
             }
-
             return null;
-
         }
 
-
+/*
         private CommResult GetLoginData(CommResult output) throws XmlPullParserException, IOException {
-
              URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpLogin));
 
-            String result = loadXmlFromNetwork(url, output);
+            String result = loadXmlFromNetwork(url);
 
             if (result.length() > 0) {
-                output.put("Output", result);
+                output.putContent( result);
             }
 
             return output;
         }
-
-
+*/
         // Uploads XML, parses it, and combines it with
         // HTML markup. Returns HTML string.
 
-        private String loadXmlFromNetwork(URL url, CommResult output) throws XmlPullParserException, IOException {
-            InputStream stream = null;
+        private String loadXmlFromNetwork(URL url) //throws XmlPullParserException, IOException
+        {
             // Instantiate the parser
             CarolOdiorneXmlParser carolOdiorneXmlParser = new CarolOdiorneXmlParser();
-
-
             String result = null;
             HttpURLConnection conn = null;
             try {
-
-                conn = downloadUrl(url, output);
+                conn = downloadUrl(url);
                 if(hostComm.getInputStream() != null)
                     // it fails in here....
-                    result = carolOdiorneXmlParser.parse(hostComm.getInputStream());
-
+                    try {
+                        result = carolOdiorneXmlParser.parse(hostComm.getInputStream(),getResources());
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
             } finally {
                 if (hostComm.getInputStream() != null) {
-                    (hostComm.getInputStream()).close();
+                    try {
+                        (hostComm.getInputStream()).close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     if(conn != null)
                         conn.disconnect();
                 }
             }
-
             return result;
         }
 
-        private HttpURLConnection downloadUrl(URL url, CommResult output) throws IOException {
+        private HttpURLConnection downloadUrl(URL url) //throws IOException {
+        {
 
-             // if loginOnly is set, we need to get this information for the userData array
-            String a = new StringBuilder("username=").append(userData.getUsername()).append("&password=").append(userData.getPassword()).append("&form_id-login_form").toString();
-
+             // if loginOnly is set, we need to get this information from the userData array
+            String a = getString(R.string.xmlUsername) + userData.getUsername() + getString(R.string.xmlSeparator) + getString(R.string.xmlPassword) + userData.getPassword() + getString(R.string.xmlSeparator) + getString(R.string.xmlLoginFrm);
             return hostComm.putCommunication(url,a);
 
         }
     }
-
-
-
-
-
-
 
 }

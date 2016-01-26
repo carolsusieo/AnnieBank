@@ -102,7 +102,7 @@
             android:inputType="text"
             />
 
-    </LinearLayout>
+     </LinearLayout>
 
     <CheckBox android:id="@+id/checkbox_use_web1"
         android:layout_width="wrap_content"
@@ -151,8 +151,15 @@
         android:layout_below="@id/website2_block"
         android:text="@string/lbl_login_test"
         android:layout_toRightOf="@+id/btn_login"
+        android:layout_toEndOf="@+id/btn_login"
         />
 
+    <TextView android:id="@+id/loginErrorReason"
+        android:layout_below="@id/btn_login_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/empty"
+        />
 
 
 </RelativeLayout>

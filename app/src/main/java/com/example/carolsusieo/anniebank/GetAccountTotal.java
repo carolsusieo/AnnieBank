@@ -1,52 +1,68 @@
 package com.example.carolsusieo.anniebank;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-import android.os.AsyncTask;
-
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
+import java.util.ArrayList;
 
 
 public class GetAccountTotal extends AppCompatActivity {
 
-    UserData userData;
-    CommResult commResult;
-    int whichTime =0;
-    Intent intentIn;
+    private UserData userData;
+    private TranData tranData;
+    private CommResult commResult;
+    private Intent intentIn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
-
+        //resources = getResources();
         setContentView(R.layout.activity_get_account);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         intentIn = getIntent();
         Bundle bundle = intentIn.getExtras();
-        userData = (UserData) bundle.getSerializable("userdata");
+        userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
 
+        // read trandata from the TinyDB
+        //tranData = (TranData) bundle.getSerializable(getString(R.string.tranFile));
+        tranData = new TranData();
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        ArrayList<Object> objArray = tinydb.getListObject("TranDataData", TranDataData.class);
+        ArrayList<TranDataData> tranArray = new ArrayList<>();
+        for(Object obj: objArray) {
+            TranDataData in = (TranDataData) obj;
+            tranArray.add(in);
+        }
+        tranData.remakeStoredTrans(tranArray);
 
         commResult = new CommResult();
+        Button _sendBtn = (Button) findViewById(R.id.btn_get_acct);
 
+        _sendBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new HttpRequest(userData, commResult, v.getContext()).execute();
+
+            }
+        });
+/*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -60,58 +76,75 @@ public class GetAccountTotal extends AppCompatActivity {
 
             }
         });
+*/
     }
 
+    // I used to go straight into getting the communication... not requiring the selection of the button
+    // however, when I did that, attempting to use the progress dialog caused a app failure
+   /*
     @Override
     protected void onStart() {
         super.onStart();
-        new LoginHttpRequest2(userData,commResult,this.getApplicationContext()).execute();
 
-        // hopefully commResult and userData are now updated... let's see.
-
-        // when do we know the action has completed?
-
-        // we need to pass the information in CommResult to the calling routine if it was set
-
+     //   new HttpRequest(userData, commResult, this.getBaseContext()).execute();
     }
-    @Override
-    protected void onStop() {
-        super.onStop();
+    */
 
-    }
     public void onBackPressed()
     {
         if(intentIn != null) {
             if (userData != null)
-                intentIn.putExtra("userdata", userData);
+                intentIn.putExtra(getString(R.string.userFile), userData);
+            if(tranData != null) {
+                if(commResult != null) {
+                    String cr = commResult.getContent();
+                    if(cr != null) {
+                        float f = Float.valueOf(commResult.getContent().trim());
+                        tranData.setLastAmt(f);
+                    }
+                }
+      //          intentIn.putExtra(getString(R.string.tranFile), tranData);
+            }
+            // message is now part of above
+            /*
             if (commResult != null)
-                intentIn.putExtra("MESSAGE", commResult.getContent());
+                intentIn.putExtra(resources.getString(R.string.message), commResult.getContent());
             else
-                intentIn.putExtra("MESSAGE", "unknown");
+                intentIn.putExtra(resources.getString(R.string.message), resources.getString(R.string.unknown));
+            */
             setResult(RESULT_OK, intentIn);
         }
         finish();
     }
 
     protected void updateScreen() {
+        // there are two text displays on top, and then two underneath them.
 
-            TextView greetingIdText = (TextView) findViewById(R.id.id_value);
-            TextView greetingContentText = (TextView) findViewById(R.id.content_value);
+            //TextView commResultLabelText = (TextView) findViewById(R.id.commResult);
+            TextView commResultText = (TextView) findViewById(R.id.commResultValue);
+            //TextView balanceLabelText = (TextView) findViewById(R.id.balanceResult);
+            TextView balanceText = (TextView) findViewById(R.id.balanceResultValue);
             if (commResult != null) {
                 if (commResult.getStage() == 3) {
-                    greetingIdText.setText(commResult.getId());
-                    greetingContentText.setText(commResult.getContent());
+                    commResultText.setText(commResult.getRespMessage());
+                    float f = Float.valueOf(commResult.getContent().trim());
+                    f -= tranData.getValueOfStoredTransactions();
+                    tranData.setLastAmt(f);
+                    balanceText.setText(tranData.getLastAmt());
                 } else {
-                    greetingIdText.setText(commResult.getStage());
-                    greetingContentText.setText(commResult.getCodeString());
+                    commResultText.setText(getString(R.string.error));
+                    balanceText.setText(commResult.getRespMessage());
                 }
 
             } else {
-                greetingIdText.setText("error");
-                greetingContentText.setText("error also");
+                 commResultText.setText(getString(R.string.error));
+                balanceText.setText(getString(R.string.error));
             }
-
     }
+// todo want to be able to display current transactions not sent to host.
+
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -121,7 +154,7 @@ public class GetAccountTotal extends AppCompatActivity {
         //getMenuInflater().inflate(R.menu.rest, menu);
         return true;
     }
-
+/*
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -129,56 +162,62 @@ public class GetAccountTotal extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            new LoginHttpRequest2(userData,commResult,this).execute();
+            new HttpRequest(userData,commResult,this).execute();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
+*/
 
 
 
 
 
 
-
-    private class LoginHttpRequest2 extends AsyncTask<Void, Void, CommResult> {
+    private class HttpRequest extends AsyncTask<Void, Void, CommResult> {
 
         private UserData userData;
-        CommResult commResult;
-
-        HostComm hostComm;
-        public LoginHttpRequest2 (UserData in, CommResult inget, Context contextIn) {
+        final CommResult commResult;
+        ProgressDialog progress;
+        final HostComm hostComm;
+        public HttpRequest (UserData in, CommResult inget, Context contextIn) {
             userData = in;
             commResult = inget;
             hostComm = new HostComm(contextIn);
+            progress = null;
+            progress = new ProgressDialog(contextIn);
+             initiateProgress();
+
         }
 
 
 
         @Override
         protected CommResult doInBackground(Void... params) {
-            commResult.put("stage", 1);
+            commResult.putStage(1);
+            doProgress(1);
             CommResult retval = Stage1(commResult);
 
-            if (!isCancelled() && retval.getCode() == HttpURLConnection.HTTP_OK) {
-                doProgress(33);
+            if (!isCancelled() && retval != null && retval.getCode() == HttpURLConnection.HTTP_OK) {
+                doProgress(2);
                 //publishProgress(33);
-                commResult.put("stage", 2);
-                if(userData == null || userData.getLoggedIn() == false )
+                commResult.putStage( 2);
+                if(userData == null || !userData.getLoggedIn() )
                     retval = Login(retval);
                 if (retval != null && !isCancelled() && retval.getCode() == HttpURLConnection.HTTP_OK) {
                     if(userData == null) {
                         userData = new UserData();
                     }
                     userData.setLoggedIn(true);
-                    doProgress(66);
+                    doProgress(3);
                     //publishProgress(66);
-                    commResult.put("stage", 3);
+                    commResult.putStage(3);
                     try {
                         retval = GetData(retval);
-                        doProgress(100);
+                        doProgress(4);
                         //publishProgress(100);
                     }catch (Exception e) {
+                        e.printStackTrace();
 
                     }
                 }
@@ -186,8 +225,17 @@ public class GetAccountTotal extends AppCompatActivity {
             return retval;
         }
 
+        public void initiateProgress() {
+            if(progress != null) {
+                progress.setMessage(getString(R.string.GetBalance));
+                progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progress.setIndeterminate(true);
+                 progress.show();
+                progress.setProgress(0);
+            }
+        }
         public void doProgress(int value){
-            publishProgress();
+            if(progress != null) progress.setProgress(100/4 * value);
         }
 
 
@@ -195,23 +243,9 @@ public class GetAccountTotal extends AppCompatActivity {
         protected void onPostExecute(CommResult commResult) {
 
             // we need to pass the information in CommResult to the calling routine if it was set
-
-            TextView greetingIdText = (TextView) findViewById(R.id.id_value);
-            TextView greetingContentText = (TextView) findViewById(R.id.content_value);
-            if (commResult != null) {
-                if (commResult.getStage() == 3) {
-                    greetingIdText.setText(commResult.getId());
-                    greetingContentText.setText(commResult.getContent());
-                } else {
-                    greetingIdText.setText(commResult.getStage());
-                    greetingContentText.setText(commResult.getCodeString());
-                }
-
-            } else {
-                greetingIdText.setText("error");
-                greetingContentText.setText("error also");
-            }
-
+            updateScreen();
+            if(progress !=null)
+                progress.dismiss();
         }
 
 
@@ -224,8 +258,8 @@ public class GetAccountTotal extends AppCompatActivity {
 
                 hostComm.RequestCSRFToken(url);
 
-                output.put("ResponseMessage", hostComm.getRM());
-                output.put("ResponseCode", hostComm.getRC());
+                output.putMessage(hostComm.getRM());
+                output.putCode( hostComm.getRC());
 
                 return output;
             } catch (Throwable t) {
@@ -243,8 +277,9 @@ public class GetAccountTotal extends AppCompatActivity {
 
                 int ret = hostComm.Login(url,userData);
                 if(ret == HttpURLConnection.HTTP_OK) {
-                    output.put("ResponseMessage", hostComm.getRM());
-                    output.put("ResponseCode", hostComm.getRC());
+                    output.putMessage(hostComm.getRM());
+                    output.putCode(hostComm.getRC());
+
                     return output;
                 }
                 else
@@ -262,10 +297,10 @@ public class GetAccountTotal extends AppCompatActivity {
 
             URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpGetAmt));
 
-            String result = loadXmlFromNetwork(url, output);
+            String result = loadXmlFromNetwork(url);
 
             if (result.length() > 0) {
-                output.put("Output", result);
+                output.putContent( result);
             }
 
             return output;
@@ -275,8 +310,7 @@ public class GetAccountTotal extends AppCompatActivity {
         // Uploads XML, parses it, and combines it with
         // HTML markup. Returns HTML string.
 
-        private String loadXmlFromNetwork(URL url, CommResult output) throws XmlPullParserException, IOException {
-            InputStream stream = null;
+        private String loadXmlFromNetwork(URL url) throws XmlPullParserException, IOException {
             // Instantiate the parser
             CarolOdiorneXmlParser carolOdiorneXmlParser = new CarolOdiorneXmlParser();
 
@@ -285,9 +319,9 @@ public class GetAccountTotal extends AppCompatActivity {
             HttpURLConnection conn = null;
             try {
 
-                conn = downloadUrl(url, output);
+                conn = downloadUrl(url);
                 if(hostComm.getInputStream() != null)
-                    result = carolOdiorneXmlParser.parse(hostComm.getInputStream());
+                    result = carolOdiorneXmlParser.parse(hostComm.getInputStream(),getResources());
 
             } finally {
                 if (hostComm.getInputStream() != null) {
@@ -300,7 +334,8 @@ public class GetAccountTotal extends AppCompatActivity {
             return result;
         }
 
-        private HttpURLConnection downloadUrl(URL url, CommResult output) throws IOException {
+        private HttpURLConnection downloadUrl(URL url) //throws IOException
+        {
 
             return hostComm.getCommunication(url);
 

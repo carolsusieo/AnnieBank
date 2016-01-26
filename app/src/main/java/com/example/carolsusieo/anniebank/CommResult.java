@@ -2,45 +2,38 @@ package com.example.carolsusieo.anniebank;
 
 /**
  * Created by carolsusieo on 11/6/15.
+ * Deal with the communication process and what to display during and after a communication attempt
  */
+// todo could this be a class in the HostComm class...?  so we don't just shuffle around data?
 public class CommResult {
-//    private String token; // x-csrf-toxen
-    private String id; //
+    //    private String token; // x-csrf-toxen
     private String content; // value from sheetnode
     private String message;
-    private String code_string;
     private int code; // http response code
     private int stage; // initial, login, data
 
-    public int getStage() { return this.stage;}
-    public int getCode() { return this.code;}
-    public String getCodeString() { return this.code_string;}
+    public int getStage() {
+        return stage;
+    }
+    public int getCode() {return code;}
 
-//    public String getToken() {
-//        return this.token;
-//    }
-//    public void putToken(String in) { token = in;}
-
-    public String getId() {return this.id;}
-
+    public String getRespMessage() {return message;}
     public String getContent() {
         return this.content;
     }
 
-    public void put(String where, String what) {
-        if(where.contains("Output"))
-            content = what;
-        else if(where.contains("Message"))
-            message = what;
-        else
-            code_string = what;
-
+    public void putStage(int what) {
+        stage = what;
     }
+    public void putCode(int what) {code = what;}
 
-    public void put(String where, int what) {
-        if (where.contains("Code"))
-            code = what;
-        else
-            stage = what;
+    // response message. such as OK, or the like
+    public void putMessage(String what)
+    {
+        message = what;
+    }
+    // content from host xml
+    public void putContent(String what) {
+        content = what;
     }
 }

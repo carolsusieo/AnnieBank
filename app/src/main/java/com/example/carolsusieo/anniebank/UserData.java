@@ -4,8 +4,10 @@ import java.io.Serializable;
 
 /**
  * Created by carolsusieo on 11/18/15.
+ * UserData contains all the information needed log into the particular system.
+ * Only needs to be set up once and stored in file
  */
-public class UserData implements Serializable {
+class UserData implements Serializable {
     private String username;
     private String password;
     private boolean loggedIn;

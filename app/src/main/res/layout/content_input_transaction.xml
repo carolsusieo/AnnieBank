@@ -51,6 +51,7 @@
             android:text="@string/lbl_amt"
             />
 
+
         <EditText
             android:id="@+id/fld_amt"
             android:layout_width="wrap_content"
@@ -58,30 +59,123 @@
             android:hint="@string/lbl_fld_enter_amt"
             android:inputType="numberDecimal"
             />
-
     </LinearLayout>
 
-    <LinearLayout android:id="@+id/btn_block"
-        android:layout_width="wrap_content"
+
+    <RadioGroup android:id="@+id/currency_radio"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/amt_block"
         android:orientation="horizontal">
 
-
-        <Button
-            android:id="@+id/btn_send"
+        <RadioButton android:id="@+id/radio_RP"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/lbl_send"
-            />
+            android:text="@string/RP" />
 
-        <Button
-            android:id="@+id/btn_another"
+        <RadioButton android:id="@+id/radio_USD"
+            android:checked="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/lbl_another"
+            android:text="@string/USD" />
+
+        <RadioButton android:id="@+id/radio_OTH"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/OTH" />
+    </RadioGroup>
+
+
+
+    <LinearLayout android:id="@+id/btn_block"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/currency_radio"
+        android:orientation="horizontal">
+
+
+        <Button
+            android:id="@+id/btn_store"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lbl_store"
             android:layout_toRightOf="@+id/btn_send"
+            android:layout_toEndOf="@+id/btn_send"
             />
+
+        <Button
+            android:id="@+id/btn_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lbl_clear"
+            android:layout_toRightOf="@+id/btn_store"
+            android:layout_toEndOf="@+id/btn_store"
+            />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_block"
+        android:orientation="vertical">
+
+    <Button
+        android:id="@+id/btn_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/lbl_send"
+         />
+
+    <Button
+        android:id="@+id/btn_display_stored_trans"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/lbl_display_stored_trans"
+        android:layout_toRightOf="@+id/btn_send"
+        android:layout_toEndOf="@+id/btn_send"
+        />
+
+        <TextView android:id="@+id/commResult"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/empty"
+        android:layout_below="@id/btn_send"
+        />
+
+    <TextView android:id="@+id/storedTransLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/storedTrans"
+        android:layout_below="@+id/commResult"
+          />
+
+    <TextView android:id="@+id/storedTransNum"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/empty"
+        android:layout_below="@id/commResult"
+        android:layout_toRightOf="@+id/storedTransLabel"
+        android:layout_toEndOf="@+id/storedTransLabel"
+        />
+
+        <TextView android:id="@+id/currentBalanceLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/currentBalance"
+            android:layout_below="@+id/storedTransLabel"
+             />
+
+        <TextView android:id="@+id/currentBalance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/empty"
+        android:layout_below="@id/storedTransNum"
+        android:layout_toRightOf="@+id/currentBalanceLabel"
+            android:layout_toEndOf="@+id/currentBalanceLabel"
+
+        />
+
     </LinearLayout>
 
 

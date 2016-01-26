@@ -1,53 +1,70 @@
 package com.example.carolsusieo.anniebank;
-
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
-
-import org.springframework.http.HttpRequest;
-import org.xmlpull.v1.XmlPullParserException;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class InputTransaction extends AppCompatActivity {
-
-    Button _sendBtn;
-    Button _anotherBtn;
-
-    //CommResult commResult;
-    TransactionData tranData;
-    Intent intentIn;
-    UserData userData;
-    CommResult commResult;
-
+    private Button _sendBtn;
+    private Button _viewBtn;
+    private Button _clearBtn;
+    private Button _storeBtn;
+    private TransactionData transactionData;
+    private Intent intentIn;
+    private UserData userData;
+    private TranData tranData;
+    private CommResult commResult;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_input_transaction);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        //commResult = new CommResult();
+
         _sendBtn = (Button) findViewById(R.id.btn_send);
-        _anotherBtn = (Button) findViewById(R.id.btn_another);
+        _clearBtn = (Button) findViewById(R.id.btn_clear);
+        _storeBtn = (Button) findViewById(R.id.btn_store);
+        _viewBtn = (Button) findViewById(R.id.btn_display_stored_trans);
 
         intentIn = getIntent();
         Bundle bundle = intentIn.getExtras();
-        userData = (UserData) bundle.getSerializable("userdata");
+        userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
+       // tranData = (TranData) bundle.getSerializable(getString(R.string.tranFile));
+        // read trandata from the TinyDB
+        //tranData = (TranData) bundle.getSerializable(getString(R.string.tranFile));
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        ArrayList<Object> objArray = tinydb.getListObject("TranDataData", TranDataData.class);
+        ArrayList<TranDataData> tranArray = new ArrayList<>();
+        for(Object obj: objArray) {
+            TranDataData in = (TranDataData) obj;
+            tranArray.add(in);
+        }
+        tranData = new TranData();
+        tranData.remakeStoredTrans(tranArray);
 
+        transactionData = new TransactionData();
 
+        setSendBtnText();
 
+/*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,237 +73,382 @@ public class InputTransaction extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
+*/
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        if(actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
         _sendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 // get the information and store it.  Start the communication
-                EditText desc   = (EditText)findViewById(R.id.fld_tran_desc);
-                String fld_desc = desc.getText().toString();
-                EditText amt   = (EditText)findViewById(R.id.fld_amt);
-                String fld_amt = amt.getText().toString();
-                tranData.putAmount(fld_amt);
-                tranData.putDesc(fld_desc);
-                // verify that we are already logged in
-                new TranHttpRequest(userData, commResult, tranData, v.getContext()).execute();
-
+                if (tranData.getNumStoredTrans() > 0) {
+                    String fld_amt = getItem(R.id.fld_amt);
+                    if (fld_amt.equals(getString(R.string.empty)) || fld_amt.contentEquals(getString(R.string.empty))) {
+                        showAlertDialog(getApplicationContext(), getString(R.string.clearTran),
+                                getString(R.string.clearMsg), false);
+                        clearTransaction();
+                    }
+                    commResult = new CommResult();
+                    // verify that we are already logged in
+                    if (tranData.getNumStoredTrans() > 0) {
+                        new TranHttpRequest(userData, commResult, v.getContext()).execute();
+                        setSendBtnText();
+                    }
+                }
 
             }
-
         });
-
-        _anotherBtn.setOnClickListener(new View.OnClickListener() {
+        // look at stored transactions
+        _viewBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                // if previous information was not sent to the host due to some sort of wifi problem, ask if they want to store info until
-                // wifi is ready, or if they just want to clear the data
-
-
-
-                // clear out the information that is currently stored in preparation to input more\
-
-                EditText desc   = (EditText)findViewById(R.id.fld_tran_desc);
-                desc.setText("");
-                EditText amt   = (EditText)findViewById(R.id.fld_amt);
-                amt.setText("");
-                // change the button to display Send Transaction
-                _sendBtn.setText("Send Transaction");
+                // get the information and store it.  Start the communication
+                if (tranData.getNumStoredTrans() > 0) {
+                    // if we call save_transactions appropriately, we shouldn't need to update here
+                    saveTransactions();
+                    viewTransactions();
+                    // tinyDB should of been updated in the view if transctions were deleted.
+                  }
+                else {
+                    // there are not stored transations to display
+                }
             }
+        });
 
+        _clearBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAlertDialog(getApplicationContext(), getString(R.string.clearTran),
+                        getString(R.string.clearMsg), false);
+                clearTransaction();
+            }
+        });
+
+        _storeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if ((getData(transactionData)) != null) {
+                    tranData.storeTran(transactionData);
+                    saveTransactions();
+                }
+                setSendBtnText();
+            }
         });
     }
-
-    public void onBackPressed()
+    private void clearItem(int in)
     {
-        if(intentIn != null) {
+        EditText item = (EditText) findViewById(in);
+        item.setText(getString(R.string.empty));
+    }
+    private void clearTransaction() {
+        clearItem(R.id.fld_amt);
+        clearItem(R.id.fld_tran_desc);
+        setSendBtnText();
+    }
+    private void setSendBtnText() {
+        if (tranData.getNumStoredTrans() > 0) {
+            _sendBtn.setText(getString(R.string.send_transactions));
+        } else {
+            _sendBtn.setText(getString(R.string.send_transaction));
+        }
+        TextView storeText = (TextView) findViewById(R.id.storedTransNum);
+        storeText.setText(Integer.toString(tranData.getNumStoredTrans()));
+    }
+    // whenever the transaction stored information changes, this needs to be called.
+    private void saveTransactions()
+    {
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        ArrayList<TranDataData> arrayListData =  tranData.getTranArrayData();
+        ArrayList<Object> array = new ArrayList<Object>();
+        for(TranDataData item: arrayListData)
+            array.add(item);
+        tinydb.putListObject("TranDataData", array);
+    }
+    private ArrayList<TranDataData> readTransactions()
+    {
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        ArrayList<TranDataData> arrayListData =  tranData.getTranArrayData();
+        ArrayList<Object> array = new ArrayList<Object>();
+        tinydb.getListObject("TranDataData", TranDataData.class);
+        for(Object item: array) {
+            arrayListData.add((TranDataData) item);
+            // need to update all the various amounts and the like based on possible changes.
+
+        }
+        return arrayListData;
+    }
+
+    // is this handling all types of exits?
+    public void onBackPressed() {
+        if (intentIn != null) {
+
             if (userData != null)
-                intentIn.putExtra("userdata", userData);
-            if (commResult != null)
-                intentIn.putExtra("MESSAGE", commResult.getContent());
-            else
-                intentIn.putExtra("MESSAGE", "unknown");
+                intentIn.putExtra(getString(R.string.userFile), userData);
+//            if (tranData != null) {
+//                intentIn.putExtra(getString(R.string.tranFile), tranData);
+//            }
+
+            saveTransactions();
             setResult(RESULT_OK, intentIn);
         }
         finish();
     }
+    //testing dialog below main...
+    private void showAlertDialog(Context context, String title, String message, Boolean status) {
+
+        AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+        // Setting Dialog Title
+        alertDialog.setTitle(title);
+        // Setting Dialog Message
+        alertDialog.setMessage(message);
+        // Setting alert dialog icon
+        alertDialog.setIcon((status) ? R.drawable.agt_action_success : R.drawable.agt_action_fail);
+        // Setting OK Button
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.ok), new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        alertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        // Showing Alert Message
+        // it blows here.
+        alertDialog.show();
+    }
+    private String getItem(int in) {
+        EditText item = (EditText) findViewById(in);
+        return  item.getText().toString();
+    }
+    private TransactionData getData(TransactionData transactionData) {
+        String fld_desc = getItem(R.id.fld_tran_desc);
+        String fld_amt = getItem(R.id.fld_amt);
+        if (fld_amt.trim().length() == 0 || fld_amt.contentEquals(getString(R.string.empty)))
+            return null;
+        else {
+            RadioGroup currencyBlock = (RadioGroup) findViewById(R.id.currency_radio);
+            int selectedId = currencyBlock.getCheckedRadioButtonId();
+            RadioButton currencyButton = (RadioButton) findViewById(selectedId);
+            transactionData.putCurrency(currencyButton.getText().toString());
+            transactionData.putAmount(fld_amt);
+            transactionData.putDesc(fld_desc);
+        }
+        return transactionData;
+    }
+    private void setItem(int in, String inStr) {
+        TextView item = (TextView) findViewById(in);
+        item.setText(inStr);
+    }
+    private void updateScreen() {
+        if (commResult != null) {
+            if (commResult.getStage() >= 3) {
+                setItem(R.id.commResult,commResult.getRespMessage());
+                _sendBtn.setText(getString(R.string.tran_sent));
+            } else {
+                setItem(R.id.commResult,getString(R.string.error));
+                _sendBtn.setText(getString(R.string.tran_failed_retry));
+            }
+        } else {
+            setItem(R.id.commResult, getString(R.string.error));
+            _sendBtn.setText(R.string.tran_failed);
+        }
+        setItem(R.id.storedTransNum,Integer.toString(tranData.getNumStoredTrans()));
+        setItem(R.id.currentBalance, tranData.getLastAmt());
+    }
+
+    private static final int VIEW_ACTIVITY = 3;
+    private void viewTransactions(/*View view*/) {
+        // start activity that allows user to input user name, and password (twice with verification)
+        if(userData == null) {
+            userData = new UserData();
+        }
+        Intent intent = new Intent(this, ViewStoredTransactions.class);
+        startActivityForResult(intent,VIEW_ACTIVITY);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // different data is shuffled back and forth depending on activity
+        if (data != null) {
+            switch (requestCode) {
+                case VIEW_ACTIVITY:
+                    // restore the transactions, in case some were deleted
+                    ArrayList<TranDataData> array = readTransactions();
+                    tranData.remakeStoredTrans(array);
+                    updateScreen();
+                    break;
+            }
+
+        }
+    }
 
     private class TranHttpRequest extends AsyncTask<Void, Void, CommResult> {
 
-        CommResult postTran;
-        HostComm hostComm;
+        final CommResult postTran;
+        final HostComm hostComm;
         UserData userData;
+        final ProgressDialog progress;
+        int progressMark = 0;
 
-        public TranHttpRequest ( UserData userDatain,CommResult inget, TransactionData in,Context contextIn) {
+        public TranHttpRequest(UserData userDatain, CommResult inget, Context contextIn) {
             // we already have access to transaction data, but it won't hurt....
-            tranData = in;
             postTran = inget;
             userData = userDatain;
             hostComm = new HostComm(contextIn);
+            progress = new ProgressDialog(contextIn);
         }
-
-
 
         @Override
         protected CommResult doInBackground(Void... params) {
-
-            postTran.put("stage", 1);
             CommResult retval = Stage1(postTran);
-
-            if (!isCancelled() && retval != null  && retval.getCode() == HttpURLConnection.HTTP_OK) {
-                doProgress(33);
-                if (userData == null || userData.getLoggedIn() == false)
+            doProgress(1);
+            if (retval != null) {
+                retval.putStage(1);
+            }
+            if (!isCancelled() && retval != null && retval.getCode() == HttpURLConnection.HTTP_OK) {
+                // progress is going to depend on number of stored transactions....
+                doProgress(2);
+                retval.putStage(2);
+                if (userData == null || !userData.getLoggedIn())
                     retval = Login(retval);
-                if (!isCancelled() && retval.getCode() == HttpURLConnection.HTTP_OK) {
+                if (!isCancelled() && retval != null && retval.getCode() == HttpURLConnection.HTTP_OK) {
                     if (userData == null) {
                         userData = new UserData();
                     }
                     userData.setLoggedIn(true);
-                    doProgress(66);
-                    //publishProgress(66);
-                    retval.put("stage", 3);
+                    doProgress(3);
+                    retval.putStage(3);
                     try {
-                        retval = SendTran(retval);
-                        doProgress(100);
+                        // if this is the first time...  and I haven't logged in somewhere else...  this SendTran fails...
+                        while ((transactionData = tranData.getStoredTrans()) != null) {
+                            retval = SendTran(retval);
+                            if (retval != null) {
+                                tranData.decStoredTrans();
+                                doProgress(3);
+                            }
+                        }
                         //publishProgress(100);
                     } catch (Exception e) {
-
+                        // we need to indicate that everything didn't go perfectly
+                        if(retval != null)
+                            retval.putStage(2);
                     }
                 }
             }
             return retval;
         }
-
-        public void doProgress(int value){
-            publishProgress();
+        public void initiateProgress() {
+            progress.setMessage(getString(R.string.SendTransactions));
+            progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            progress.setIndeterminate(true);
+            progressMark = tranData.getNumStoredTrans();
+            progress.show();
+            progress.setProgress(0);
         }
-
-
-        @Override
-        protected void onPostExecute(CommResult postTran) {
-
-            // we need to pass the information in CommResult to the calling routine if it was set
-
-            if (postTran != null) {
-                if (postTran.getStage() == 2) {
-
-                    // we are logged in
-                    //
-                    _sendBtn.setText("Transaction Sent");
-                    // indicate that the log in information as been verified
-
-                }
-                else
-                    _sendBtn.setText("Transaction Failed, Try Again");
+        // currently not progessing
+        int max;
+        public void doProgress(int value) {
+             int percentage = 0;
+            if(value == 1) {
+                max = progressMark + 2;
             }
             else
-                _sendBtn.setText("Transaction Failed");
-
+            {
+                //todo determine why this doesn't seem to be working
+                percentage = (100/max) * (max - progressMark);
+                progressMark--;
+            }
+            progress.incrementProgressBy(percentage);
+        }
+        @Override
+        protected void onPreExecute(){
+            initiateProgress();
+        }
+        @Override
+        protected void onPostExecute(CommResult commResult) {
+            updateScreen();
+            progress.dismiss();
+            // need to update the data that's serialized?
+        }
+        public CommResult updateOutput(CommResult output) {
+            output.putMessage(hostComm.getRM());
+            output.putCode(hostComm.getRC());
+            return output;
         }
 
-
-
-
         private CommResult Stage1(CommResult output) {
-
             try {
-                URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpSessionToken));
-                 hostComm.RequestCSRFToken(url);
-
-                output.put("ResponseMessage", hostComm.getRM());
-                output.put("ResponseCode", hostComm.getRC());
-
-                return output;
+                URL url = hostComm.CreateURL(userData, getString(R.string.lbl_web1), getString(R.string.httpSessionToken));
+                hostComm.RequestCSRFToken(url);
+                return(updateOutput(output));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
-
             return null;
         }
 
         private CommResult Login(CommResult output) {
-
             try {
+                URL url = hostComm.CreateURL(userData, getString(R.string.lbl_web1), getString(R.string.httpLogin));
+                int ret = hostComm.Login(url, userData);
 
-                URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpLogin));
-                int ret = hostComm.Login(url,userData);
-
-                if(ret == HttpURLConnection.HTTP_OK) {
-                    output.put("ResponseMessage", hostComm.getRM());
-                    output.put("ResponseCode", hostComm.getRC());
-                    return output;
-                }
-                else
+                if (ret == HttpURLConnection.HTTP_OK) {
+                    return updateOutput(output);
+                } else {
+                    // why not update output even on comm failure?  We could display the error
                     return null;
-
-
+                }
             } catch (Throwable t) {
                 t.printStackTrace();
             }
-
             return null;
-
         }
 
-        // hopefully we are already logged in...  We should be in order to get the amount already there... ASSUMPTION
-
-
-
-        private CommResult SendTran(CommResult output) throws XmlPullParserException, IOException {
-
-            URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpPut));
-
-            String result = loadXmlFromNetwork(url, output);
-
+        private CommResult SendTran(CommResult output)  {
+            URL url = hostComm.CreateURL(userData, getString(R.string.lbl_web1), getString(R.string.httpPut));
+            String result = loadXmlFromNetwork(url);
             if (result.length() > 0) {
-                output.put("Output", result);
+                // initial transactions might go, while subsequent ones do not...
+                output.putContent(result);
+                output.putStage(4);
             }
-
             return output;
         }
 
-
-        // Uploads XML, parses it, and combines it with
-        // HTML markup. Returns HTML string.
-
-        private String loadXmlFromNetwork(URL url, CommResult output) throws XmlPullParserException, IOException {
-            InputStream stream = null;
-            // Instantiate the parser
-            CarolOdiorneXmlParser carolOdiorneXmlParser = new CarolOdiorneXmlParser();
-
-
+        private String loadXmlFromNetwork(URL url) //throws XmlPullParserException, IOException
+        {
             String result = null;
             HttpURLConnection conn = null;
             try {
-
-                conn = downloadUrl(url, output);
-                // new result....
-                if(hostComm.getInputStream() != null)
-                    result = carolOdiorneXmlParser.parse(hostComm.getInputStream());
-
+                conn = downloadUrl(url);
+                try {
+                    if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                        result = getString(R.string.ok);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             } finally {
                 if (hostComm.getInputStream() != null) {
-                    (hostComm.getInputStream()).close();
-                    if(conn != null)
+                    try {
+                        (hostComm.getInputStream()).close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (conn != null)
                         conn.disconnect();
                 }
             }
-
             return result;
         }
 
-        private HttpURLConnection downloadUrl(URL url, CommResult output) throws IOException {
+        private HttpURLConnection downloadUrl(URL url) //throws IOException {
+        {
 
-            // if loginOnly is set, we need to get this information for the userData array
-            String a;
-            a = String.valueOf(new StringBuilder("amt=").append(tranData.getAmount()).append("&desc").append(tranData.getDesc()));
-
-            return hostComm.putCommunication(url,a);
-
+            String a = String.valueOf(new StringBuilder(getString(R.string.xmlAmt)).append(transactionData.getAmount())
+                    .append(getString(R.string.xmlSeparator)).append(getString(R.string.xmlLabel)).append(transactionData.getDesc())
+                    .append(getString(R.string.xmlSeparator)).append(getString(R.string.xmlCurrency)).append(transactionData.getCurrency()));
+            return hostComm.putCommunication(url, a);
         }
     }
-
-
 }

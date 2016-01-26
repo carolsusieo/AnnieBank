@@ -1,42 +1,40 @@
 package com.example.carolsusieo.anniebank;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
-
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
+import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    UserData userData;
-    HostComm hostComm;
-    Button _accountBtn;
-    Button _loginBtn;
-    Button _updateBtn;
-    Context context;
-    boolean needLogin;
-    Boolean isConnectionExist = false;
-    Boolean needAmount;
-    String lastAmt;
+    private UserData userData;
+    private TranData tranData;
+    private HostComm hostComm;
+    private Button _accountBtn;
+    private Button _loginBtn;
+    private Button _updateBtn;
+    private Context context;
+    private boolean needLogin;
+    //Boolean isConnectionExist = false;
+    //Boolean needAmount;
+    //Resources resources;
+
+
+    private static final int LOGIN_ACTIVITY = 3;
+    private static final int BALANCE_ACTIVITY = 2;
+    private static final int TRANSACTION_ACTIVITY = 4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,36 +42,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        //resources = getResources();
         hostComm = new HostComm(this);
         context = getApplicationContext();
-        needAmount = true;
-        // if first time ever, or never gotten a good hook up,
-        // you need to set up the account stuff,
-        // otherwise just show the account, and allow user to make a
-        // deposit or withdrawal
+        //needAmount = true;
 
         getMySharedPreferences();
 
         // I think this is happening over and again, because we've set it previously
         if (userData == null || !(userData.getLoggedIn())) {
             //the app is being launched for first time, do something
-            Log.d("Comments", "Login_info");
-
-            // get the info required to login to the host site
-
-            //WAIT - note.... this didn't STOP to actually allow us to do anything... isn't acting like an activity...
-            //View view =  findViewById(R.id.btn_login_main);
-            // starting an activity from OnCreate seems to be a problem
             needLogin = true;
-
-
         }
-        else
-            // we haven't actually logged in this session.... just verfied that a login has been done in the past
+        else {
+            // we haven't actually logged in this session.... just verified that a login has been done in the past
             userData.setLoggedIn(false);
+        }
 
-
-
+/*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -83,11 +69,13 @@ public class MainActivity extends AppCompatActivity {
                 startTest();
 
             }
-        });
 
+        });
+*/
         _accountBtn = (Button) findViewById(R.id.btn_view_account);
         _loginBtn = (Button) findViewById(R.id.btn_login_main);
         _updateBtn = (Button) findViewById(R.id.btn_update_account);
+
         _accountBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -95,9 +83,7 @@ public class MainActivity extends AppCompatActivity {
                     startTest();
                 }
              }
-
         });
-
         _loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -105,7 +91,6 @@ public class MainActivity extends AppCompatActivity {
               }
 
         });
-
         _updateBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -121,30 +106,38 @@ public class MainActivity extends AppCompatActivity {
     {
         super.onActivityResult(requestCode, resultCode, data);
 
+        // different data is shuffled back and forth depending on activity
         if(data != null) {
-            // check if the request code is same as what is passed  here it is 2
-            userData = (UserData) data.getSerializableExtra("userdata");
-            // if we don't reset, we will get in a loop until we do
-            needLogin = false;
-            putMySharedPreferences();
+            switch(requestCode) {
+                case LOGIN_ACTIVITY:
+                    // check if the request code is same as what is passed  here it is 2
+                    userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
+                    // if we don't reset, we will get in a loop until we do
+                    needLogin = false;
+                    putMySharedPreferences();
 
-            if (requestCode == 2 || requestCode == 4) {
-                String message = data.getStringExtra("MESSAGE");
-                if (lastAmt == null)
-                    lastAmt = new String();
-                if(message != null) {
-                    lastAmt = message;
-                    // it's possible the communications never happened....
-                    String a = String.valueOf(new StringBuilder("Annie\'s Bank Balance is ").append(message));
+                    break;
+                case BALANCE_ACTIVITY:
+                case TRANSACTION_ACTIVITY:
+                    userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
+                    needLogin = false;
+                    getTinyDBTrans();
+                    //tranData = (TranData) data.getSerializableExtra(getString(R.string.tranFile));
+                    //needAmount = false;
+                    putMySharedPreferences();
+
+                    // ?  not sure about all this message stuff, now that I have the serializable tran data.
+                         // it's possible the communications never happened....
+                    String a = String.valueOf(new StringBuilder(getString(R.string.title_activity_rest)).append(getString(R.string.colon)).append(tranData.getLastAmt()));
                     TextView thisText = (TextView) findViewById(R.id.txt_annie_bank);
                     thisText.setText(a);
-                }
+                     break;
             }
         }
 
         else {
             TextView thisText = (TextView) findViewById(R.id.txt_annie_bank);
-            thisText.setText("error");
+            thisText.setText(getString(R.string.error));
         }
     }
 
@@ -153,77 +146,118 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         if(needLogin)
             logindata(/*view*/);
-        //now see if we can test the recently entered login information....
-        // if it hasn't already been tested
-//        else if (needAmount && checkConnection(context)) {
-//            isConnectionExist = true;
-            // perform a check on the item... call it up over the internet.
-//            startTest(this);
-//        }
-    }
+      }
+
     @Override
     protected void onStop() {
         super.onStop();
         // set up the last know amount....
-        String PREFS_NAME = "MyPrefsFile";
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getMySharedPreferencesFile();
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        if(lastAmt != null)
-            editor.putString("lastamt", lastAmt);
+        if(tranData.getLastAmt() != null)
+            editor.putString(getString(R.string.preflastamt), tranData.getLastAmt());
         editor.commit();
+    }
+    private String nameObject() {
+        return getString(R.string.prefArrayList)  ;
+    }
+
+    private SharedPreferences getMySharedPreferencesFile() {
+        String PREFS_NAME = getString(R.string.prefsFile);
+        return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     }
 
     private void putMySharedPreferences() {
-        String PREFS_NAME = "MyPrefsFile";
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getMySharedPreferencesFile();
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("username", userData.getUsername());
-        editor.putString("password", userData.getPassword());
+        editor.putString(getString(R.string.prefUsername), userData.getUsername());
+        editor.putString(getString(R.string.prefPassword), userData.getPassword());
         if(userData.getLoggedIn())
-            editor.putBoolean("login_info_verified", userData.getLoggedIn());
-        editor.putString("website1", userData.getWebsite1());
-        editor.putString("website2", userData.getWebsite2());
-        editor.putBoolean("useweb1",userData.useWeb1());
-        editor.commit();
+            editor.putBoolean(getString(R.string.prefLoginVerified), userData.getLoggedIn());
+        editor.putString(getString(R.string.prefWeb1), userData.getWebsite1());
+        editor.putString(getString(R.string.prefWeb2), userData.getWebsite2());
+        editor.putBoolean(getString(R.string.prefUse1), userData.useWeb1());
+        editor.putString(getString(R.string.preflastamt), tranData.getLastAmt());
+
+        // TinyDB handling transactions
+        // need to store the stored transactions.
+        //editor.putString(nameObject(), ObjectSerializer.serialize(tranData));
+         editor.commit();
+
     }
+    private void getTinyDBTrans() {
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        ArrayList<Object> objArray = tinydb.getListObject("TranDataData", TranDataData.class);
+        ArrayList<TranDataData> tranArray = new ArrayList<>();
+        for(Object obj: objArray) {
+            TranDataData in = (TranDataData) obj;
+            tranArray.add(in);
+        }
+        tranData.remakeStoredTrans(tranArray);
+    }
+
     private void getMySharedPreferences() {
-        String PREFS_NAME = "MyPrefsFile";
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-        if(sharedPreferences.getString("username",null) != null)
+        SharedPreferences sharedPreferences = getMySharedPreferencesFile();
+        if(sharedPreferences.getString(getString(R.string.prefUsername),null) != null)
         {
-            if(userData == null)
+            if(userData == null) {
                 userData = new UserData();
-            userData.setUsername(sharedPreferences.getString("username", null));
-            userData.setPassword(sharedPreferences.getString("password", null), sharedPreferences.getString("password", null));
-            userData.setLoggedIn(sharedPreferences.getBoolean("login_info_verified",true));
-            userData.setWebsite1(sharedPreferences.getString("website1",null));
-            userData.setWebsite2(sharedPreferences.getString("website2",null));
-            userData.setUseWeb1(sharedPreferences.getBoolean("useweb1",true));
-            if(lastAmt == null)
-                lastAmt = new String();
-            lastAmt = sharedPreferences.getString("lastamt",null);
-            String a = String.valueOf(new StringBuilder("Annie\'s Bank Balance may be ").append(lastAmt));
+            }
+            userData.setUsername(sharedPreferences.getString(getString(R.string.prefUsername), getString(R.string.defUser)));
+            userData.setPassword(sharedPreferences.getString(getString(R.string.prefPassword), getString(R.string.defPass)),
+                    sharedPreferences.getString(getString(R.string.prefPassword), getString(R.string.defPass)));
+            userData.setLoggedIn(sharedPreferences.getBoolean(getString(R.string.prefLoginVerified), true));
+            userData.setWebsite1(sharedPreferences.getString(getString(R.string.prefWeb1), getString(R.string.defURL)));
+            userData.setWebsite2(sharedPreferences.getString(getString(R.string.prefWeb2), getString(R.string.defURL)));
+            userData.setUseWeb1(sharedPreferences.getBoolean(getString(R.string.prefUse1), true));
+
+            if(tranData == null) {
+                tranData = new TranData();
+            }
+            getTinyDBTrans();
+//            tranData = (TranData)ObjectSerializer.deserialize(sharedPreferences.getString(nameObject(),
+//                    ObjectSerializer.serialize(new TranData())));
+            String a = getString(R.string.title_activity_rest);
+            if(tranData != null)
+                a = a + getString(R.string.maybe) + tranData.getLastAmt();
             TextView thisText = (TextView) findViewById(R.id.txt_annie_bank);
             thisText.setText(a);
+        }
+        else {
+            if(userData == null) {
+                userData = new UserData();
+            }
+            userData.setUsername(getString(R.string.defUser));
+            userData.setPassword(getString(R.string.defPass), getString(R.string.defPass));
+            userData.setLoggedIn(false);
+            userData.setWebsite1(getString(R.string.defURL));
+            userData.setWebsite2(getString(R.string.defURL));
+            userData.setUseWeb1(true);
+
+            if(tranData == null) {
+                tranData = new TranData();
+            }
+            tranData.setLastAmt( "unknown");
+
         }
     }
 
 
-    public void startTest(Context context) {
+ /*   public void startTest(Context context) {
         startTest();
     }
-
-    public void startTest() {
+*/
+ private void startTest() {
         // for now, don't get the account total
 
         if(userData == null)
             userData = new UserData();
+        if(tranData == null)
+            tranData = new TranData();
         Intent intent = new Intent(this, GetAccountTotal.class);
-        intent.putExtra("userdata", userData);
-        startActivityForResult(intent, 2);
+        intent.putExtra(getString(R.string.userFile), userData);
+      //  intent.putExtra(getString(R.string.tranFile),tranData);
+        startActivityForResult(intent, BALANCE_ACTIVITY);
     }
 
     @Override
@@ -250,19 +284,19 @@ public class MainActivity extends AppCompatActivity {
 
 
   // check internet connection
-    boolean checkConnection(Context incontext)
+  private boolean checkConnection(Context incontext)
     {
         TextView wifiText = (TextView) findViewById(R.id.txt_wifi_available);
-        if(hostComm.checkConnection(incontext) == false){
+        if(!hostComm.checkConnection(incontext)){
              // Internet connection doesn't exist
-             showAlertDialog(this, "No Internet Connection",
-                    "Your device doesn't have WIFI internet access", false);
-            wifiText.setText("No WIFI.  Application needs WIFI to complete tasks.");
+             showAlertDialog(this,getString(R.string.noInternet),
+                    getString(R.string.noInternet2), false);
+            wifiText.setText(getString(R.string.noInternet3));
             return false;
         }
         else {
             // update the content wifi text item to indicate WIFI tested ok.
-            wifiText.setText("WIFI tested and available.");
+            wifiText.setText(getString(R.string.wifiGood));
             return true;
         }
 
@@ -270,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // do we have internet connectivity?
-     public void showAlertDialog(Context context, String title, String message, Boolean status) {
+    private void showAlertDialog(Context context, String title, String message, Boolean status) {
         AlertDialog alertDialog = new AlertDialog.Builder(context).create();
 
         // Setting Dialog Title
@@ -283,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.setIcon((status) ? R.drawable.agt_action_success : R.drawable.agt_action_fail);
 
         // Setting OK Button
-        alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE ,getString(R.string.ok), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
             }
         });
@@ -294,29 +328,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void logindata(/*View view*/) {
+    private void logindata(/*View view*/) {
         // start activity that allows user to input user name, and password (twice with verification)
         if(userData == null) {
             userData = new UserData();
         }
-        // we should do all the Pref stuff in the Main I think.
-        Intent intent = new Intent(this, UpdateLoginDataActivity.class);
-        intent.putExtra("userdata", userData);
-        startActivityForResult(intent, 3);
+         Intent intent = new Intent(this, UpdateLoginDataActivity.class);
+        intent.putExtra(getString(R.string.userFile), userData);
+        startActivityForResult(intent, LOGIN_ACTIVITY);
     }
-    public void update(/*View view*/) {
+
+    private void update(/*View view*/) {
         // start activity that allows user to input user name, and password (twice with verification)
         if(userData == null) {
             userData = new UserData();
         }
-        // we should do all the Pref stuff in the Main I think.
-        Intent intent = new Intent(this, InputTransaction.class);
-        intent.putExtra("userdata", userData);
-        startActivityForResult(intent, 4);
+         Intent intent = new Intent(this, InputTransaction.class);
+        intent.putExtra(getString(R.string.userFile), userData);
+        // when this happens, what happens to arrayList?
+   //     intent.putExtra(getString(R.string.tranFile),tranData);
+        startActivityForResult(intent, TRANSACTION_ACTIVITY);
     }
+/*
     public void viewaccount()
     {
         if(checkConnection(context))
             startTest();
     }
+*/
 }
