@@ -2,7 +2,6 @@ package com.example.carolsusieo.anniebank;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -23,9 +22,10 @@ import java.util.ArrayList;
 public class GetAccountTotal extends AppCompatActivity {
 
     private UserData userData;
+    //private UserData userData2;
     private TranData tranData;
     private CommResult commResult;
-    private Intent intentIn;
+//    private Intent intentIn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,14 +36,16 @@ public class GetAccountTotal extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        intentIn = getIntent();
-        Bundle bundle = intentIn.getExtras();
-        userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
+ //       intentIn = getIntent();
 
-        // read trandata from the TinyDB
-        //tranData = (TranData) bundle.getSerializable(getString(R.string.tranFile));
+
+         // read trandata from the TinyDB
         tranData = new TranData();
         TinyDB tinydb = new TinyDB(getApplicationContext());
+        userData = (UserData) tinydb.getObject("UserData",UserData.class);
+
+        float lastamt = tinydb.getFloat("TranDataDataAmt");
+        tranData.setLastAmt(lastamt);
         ArrayList<Object> objArray = tinydb.getListObject("TranDataData", TranDataData.class);
         ArrayList<TranDataData> tranArray = new ArrayList<>();
         for(Object obj: objArray) {
@@ -62,67 +64,35 @@ public class GetAccountTotal extends AppCompatActivity {
 
             }
         });
-/*
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(whichTime ==0) {
-                    onStart();
-                     whichTime = 1;
-                }
-                else
-                    updateScreen();
-
-            }
-        });
-*/
     }
-
-    // I used to go straight into getting the communication... not requiring the selection of the button
-    // however, when I did that, attempting to use the progress dialog caused a app failure
-   /*
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-     //   new HttpRequest(userData, commResult, this.getBaseContext()).execute();
-    }
-    */
 
     public void onBackPressed()
     {
-        if(intentIn != null) {
-            if (userData != null)
-                intentIn.putExtra(getString(R.string.userFile), userData);
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+//        if(intentIn != null) {
+            if (userData != null) {
+                //intentIn.putExtra(getString(R.string.userFile), userData);
+                tinydb.putObject("UserData",userData);
+            }
             if(tranData != null) {
                 if(commResult != null) {
                     String cr = commResult.getContent();
                     if(cr != null) {
                         float f = Float.valueOf(commResult.getContent().trim());
                         tranData.setLastAmt(f);
+                        tinydb.putFloat("TranDataDataAmt",f);
                     }
                 }
-      //          intentIn.putExtra(getString(R.string.tranFile), tranData);
             }
-            // message is now part of above
-            /*
-            if (commResult != null)
-                intentIn.putExtra(resources.getString(R.string.message), commResult.getContent());
-            else
-                intentIn.putExtra(resources.getString(R.string.message), resources.getString(R.string.unknown));
-            */
-            setResult(RESULT_OK, intentIn);
-        }
+            setResult(RESULT_OK, getIntent());
+  //      }
         finish();
     }
 
     protected void updateScreen() {
         // there are two text displays on top, and then two underneath them.
 
-            //TextView commResultLabelText = (TextView) findViewById(R.id.commResult);
             TextView commResultText = (TextView) findViewById(R.id.commResultValue);
-            //TextView balanceLabelText = (TextView) findViewById(R.id.balanceResult);
             TextView balanceText = (TextView) findViewById(R.id.balanceResultValue);
             if (commResult != null) {
                 if (commResult.getStage() == 3) {
@@ -154,23 +124,6 @@ public class GetAccountTotal extends AppCompatActivity {
         //getMenuInflater().inflate(R.menu.rest, menu);
         return true;
     }
-/*
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            new HttpRequest(userData,commResult,this).execute();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-*/
-
-
-
 
 
 
@@ -256,6 +209,9 @@ public class GetAccountTotal extends AppCompatActivity {
             try {
                 URL url = hostComm.CreateURL(userData,getString(R.string.lbl_web1),getString(R.string.httpSessionToken));
 
+                // POST seemed to work... sent back 200
+                //  http:/www.carolodiorne.com/?q=services/session/token
+                // currently saying 405 method not allowed - why?
                 hostComm.RequestCSRFToken(url);
 
                 output.putMessage(hostComm.getRM());

@@ -1,6 +1,5 @@
 package com.example.carolsusieo.anniebank;
 
-//import java.io.Serializable;
 
 /**
  * Created by carolsusieo on 11/23/15.
@@ -11,7 +10,7 @@ class TranDataData {
     protected String desc;
     protected String which;
 }
-public class TransactionData// implements Serializable {
+public class TransactionData
 {
 
     protected TranDataData data = new TranDataData();

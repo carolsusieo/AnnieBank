@@ -14,12 +14,22 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import java.io.IOException;
 import java.util.ArrayList;
+
+
+
+// todo best practices...
+
+//
+
+// latest ui design implementation....
+
+// get it in the app store.
 
 public class MainActivity extends AppCompatActivity {
 
     private UserData userData;
+    //private UserData userData2;
     private TranData tranData;
     private HostComm hostComm;
     private Button _accountBtn;
@@ -27,10 +37,6 @@ public class MainActivity extends AppCompatActivity {
     private Button _updateBtn;
     private Context context;
     private boolean needLogin;
-    //Boolean isConnectionExist = false;
-    //Boolean needAmount;
-    //Resources resources;
-
 
     private static final int LOGIN_ACTIVITY = 3;
     private static final int BALANCE_ACTIVITY = 2;
@@ -42,40 +48,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        //resources = getResources();
         hostComm = new HostComm(this);
         context = getApplicationContext();
-        //needAmount = true;
 
         getMySharedPreferences();
 
-        // I think this is happening over and again, because we've set it previously
         if (userData == null || !(userData.getLoggedIn())) {
-            //the app is being launched for first time, do something
             needLogin = true;
         }
         else {
-            // we haven't actually logged in this session.... just verified that a login has been done in the past
             userData.setLoggedIn(false);
         }
-
-/*
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Get The Info", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                startTest();
-
-            }
-
-        });
-*/
         _accountBtn = (Button) findViewById(R.id.btn_view_account);
-        _loginBtn = (Button) findViewById(R.id.btn_login_main);
-        _updateBtn = (Button) findViewById(R.id.btn_update_account);
-
         _accountBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -84,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 }
              }
         });
+        _loginBtn = (Button) findViewById(R.id.btn_login_main);
         _loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -91,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
               }
 
         });
+        _updateBtn = (Button) findViewById(R.id.btn_update_account);
         _updateBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -105,36 +91,34 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         super.onActivityResult(requestCode, resultCode, data);
+        TinyDB tinydb = new TinyDB(getApplicationContext());
 
         // different data is shuffled back and forth depending on activity
         if(data != null) {
             switch(requestCode) {
                 case LOGIN_ACTIVITY:
-                    // check if the request code is same as what is passed  here it is 2
-                    userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
-                    // if we don't reset, we will get in a loop until we do
+                    //userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
+                    userData = (UserData) tinydb.getObject("UserData", UserData.class);
                     needLogin = false;
                     putMySharedPreferences();
 
                     break;
                 case BALANCE_ACTIVITY:
                 case TRANSACTION_ACTIVITY:
-                    userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
+                    //userData = (UserData) data.getSerializableExtra(getString(R.string.userFile));
+                    userData = (UserData) tinydb.getObject("UserData",UserData.class);
                     needLogin = false;
-                    getTinyDBTrans();
-                    //tranData = (TranData) data.getSerializableExtra(getString(R.string.tranFile));
-                    //needAmount = false;
+                    // it's subtracting twice when it comes back from transaction.
+
+                    getTinyDBTrans(requestCode == BALANCE_ACTIVITY? true:false);
                     putMySharedPreferences();
 
-                    // ?  not sure about all this message stuff, now that I have the serializable tran data.
-                         // it's possible the communications never happened....
                     String a = String.valueOf(new StringBuilder(getString(R.string.title_activity_rest)).append(getString(R.string.colon)).append(tranData.getLastAmt()));
                     TextView thisText = (TextView) findViewById(R.id.txt_annie_bank);
                     thisText.setText(a);
                      break;
             }
         }
-
         else {
             TextView thisText = (TextView) findViewById(R.id.txt_annie_bank);
             thisText.setText(getString(R.string.error));
@@ -179,13 +163,10 @@ public class MainActivity extends AppCompatActivity {
         editor.putBoolean(getString(R.string.prefUse1), userData.useWeb1());
         editor.putString(getString(R.string.preflastamt), tranData.getLastAmt());
 
-        // TinyDB handling transactions
-        // need to store the stored transactions.
-        //editor.putString(nameObject(), ObjectSerializer.serialize(tranData));
          editor.commit();
 
     }
-    private void getTinyDBTrans() {
+    private void getTinyDBTrans(boolean adjust) {
         TinyDB tinydb = new TinyDB(getApplicationContext());
         ArrayList<Object> objArray = tinydb.getListObject("TranDataData", TranDataData.class);
         ArrayList<TranDataData> tranArray = new ArrayList<>();
@@ -194,6 +175,11 @@ public class MainActivity extends AppCompatActivity {
             tranArray.add(in);
         }
         tranData.remakeStoredTrans(tranArray);
+
+        float amt = tinydb.getFloat("TranDataDataAmt");
+        // last amount should be a negative....
+        float update = adjust ? tranData.getLastAmtFloat():0;
+        tranData.setLastAmt(amt + update);
     }
 
     private void getMySharedPreferences() {
@@ -214,9 +200,7 @@ public class MainActivity extends AppCompatActivity {
             if(tranData == null) {
                 tranData = new TranData();
             }
-            getTinyDBTrans();
-//            tranData = (TranData)ObjectSerializer.deserialize(sharedPreferences.getString(nameObject(),
-//                    ObjectSerializer.serialize(new TranData())));
+            getTinyDBTrans(false);
             String a = getString(R.string.title_activity_rest);
             if(tranData != null)
                 a = a + getString(R.string.maybe) + tranData.getLastAmt();
@@ -242,21 +226,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
- /*   public void startTest(Context context) {
-        startTest();
-    }
-*/
- private void startTest() {
-        // for now, don't get the account total
+    private void startTest() {
 
         if(userData == null)
             userData = new UserData();
         if(tranData == null)
             tranData = new TranData();
         Intent intent = new Intent(this, GetAccountTotal.class);
-        intent.putExtra(getString(R.string.userFile), userData);
-      //  intent.putExtra(getString(R.string.tranFile),tranData);
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        tinydb.putObject("UserData",userData);
+
+         //intent.putExtra(getString(R.string.userFile), userData);
         startActivityForResult(intent, BALANCE_ACTIVITY);
     }
 
@@ -283,8 +263,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-  // check internet connection
-  private boolean checkConnection(Context incontext)
+    // check internet connection
+    private boolean checkConnection(Context incontext)
     {
         TextView wifiText = (TextView) findViewById(R.id.txt_wifi_available);
         if(!hostComm.checkConnection(incontext)){
@@ -323,37 +303,29 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Showing Alert Message
-         // it blows here.
         alertDialog.show();
     }
 
 
     private void logindata(/*View view*/) {
-        // start activity that allows user to input user name, and password (twice with verification)
         if(userData == null) {
             userData = new UserData();
         }
          Intent intent = new Intent(this, UpdateLoginDataActivity.class);
-        intent.putExtra(getString(R.string.userFile), userData);
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        tinydb.putObject("UserData", userData);
+        //intent.putExtra(getString(R.string.userFile), userData);
         startActivityForResult(intent, LOGIN_ACTIVITY);
     }
 
     private void update(/*View view*/) {
-        // start activity that allows user to input user name, and password (twice with verification)
         if(userData == null) {
             userData = new UserData();
         }
          Intent intent = new Intent(this, InputTransaction.class);
-        intent.putExtra(getString(R.string.userFile), userData);
-        // when this happens, what happens to arrayList?
-   //     intent.putExtra(getString(R.string.tranFile),tranData);
-        startActivityForResult(intent, TRANSACTION_ACTIVITY);
+        //intent.putExtra(getString(R.string.userFile), userData);
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        tinydb.putObject("UserData",userData);
+         startActivityForResult(intent, TRANSACTION_ACTIVITY);
     }
-/*
-    public void viewaccount()
-    {
-        if(checkConnection(context))
-            startTest();
-    }
-*/
 }

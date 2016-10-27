@@ -115,4 +115,5 @@
     <string name="GetBalance">Get Balance From Host</string>
     <string name="lbl_display_stored_trans">View Stored</string>
     <string name="title_activity_view_stored_transactions">ViewStoredTransactions</string>
+    <string name="delete_alert_Dialog">Delete Selected Value?</string>
 </resources>

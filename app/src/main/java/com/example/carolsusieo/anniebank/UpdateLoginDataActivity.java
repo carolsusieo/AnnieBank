@@ -2,7 +2,6 @@ package com.example.carolsusieo.anniebank;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,15 +24,17 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
 
     private UserData userData;
     private CommResult commResult;
-    private Intent intentIn;
+    //private Intent intentIn;
     //Resources resources;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        intentIn = getIntent();
-        Bundle bundle = intentIn.getExtras();
-        userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
+        //intentIn = getIntent();
+        //Bundle bundle = intentIn.getExtras();
+        //userData = (UserData) bundle.getSerializable(getString(R.string.userFile));
+        TinyDB tinydb = new TinyDB(getApplicationContext());
+        userData = (UserData) tinydb.getObject("UserData",UserData.class);
         commResult = new CommResult();
 
 
@@ -47,16 +48,6 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-/*
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Test Saved Login Information", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-*/
         android.support.v7.app.ActionBar actionBar = getSupportActionBar();
         if(actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -112,9 +103,12 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
     }
     public void onBackPressed()
     {
-        if(userData != null)
-         intentIn.putExtra(getString(R.string.userFile), userData);
-        setResult(RESULT_OK, intentIn);
+        if(userData != null) {
+           // intentIn.putExtra(getString(R.string.userFile), userData);
+            TinyDB tinydb = new TinyDB(getApplicationContext());
+            tinydb.putObject("UserData",userData);
+        }
+        setResult(RESULT_OK, getIntent());
         finish();
     }
 
@@ -155,6 +149,7 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
         return(userData.setPassword(getItem(R.id.fld_pwd), getItem(R.id.fld_pwd2)));
     }
     private boolean TestUsername(UserData userData) {
+        // todo need to actually test it for a proper value - does it need to include the website information, or just be a name?
         return(userData.setUsername(getItem(R.id.fld_username)));
     }
     private void SetValues(UserData userData) {
@@ -167,6 +162,8 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
     }
 
 
+    // packet format:
+    //
 
     // this doesn't happen without the entire activity starting
     // so, when the GetAccountTotal activity completes, we see it's screen up
@@ -245,6 +242,7 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
             }
             progress.dismiss();
         }
+
         private CommResult Stage1(CommResult output) {
 
             try {
@@ -257,6 +255,11 @@ public class UpdateLoginDataActivity extends AppCompatActivity {
 
             return null;
         }
+
+
+
+        // packet format:  Note - sheet is the service reference in the drupal application
+
 
         private CommResult Login(CommResult output) {
 

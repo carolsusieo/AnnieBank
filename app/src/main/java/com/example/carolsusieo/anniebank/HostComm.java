@@ -15,6 +15,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+
+/* sequence of login:
+
+ */
+
+
 /**
  * Created by carolsusieo on 11/20/15.
  * the host communication process.
@@ -48,6 +54,13 @@ class HostComm {
         //context = contextIn;
         resources = contextIn.getResources();
     }
+
+    // note the values sent in (other than the userData values) have the separators in them....
+    // therefore the output contains
+    // separators (i.e. /servicename/continued service name)
+
+    // output is <label1... i.e. http:/www.> <website entered, i.e. carolodiorne.com> <label2... i.e.
+    // /servicename .. sheet/service increment user/ service incrmeent login
     public URL CreateURL(UserData userData, String label, String label2) {
         String webString;
         String website;
@@ -55,6 +68,8 @@ class HostComm {
             website = userData.getWebsite1();
         else
             website = userData.getWebsite2();
+
+
         webString = label + website + label2;
 
         URL url = null;
@@ -72,7 +87,7 @@ class HostComm {
 
             HttpURLConnection conn = startCommunication(url);
             if(conn !=null) {
-                conn.setDoOutput(false); // this is a get
+                conn.setDoOutput(false); // this is a get - based on sending false.... put otherwise -
                 //?  used to not do the conn.connect() in endComm
                 //endCommunication(conn);
                 putRM(conn.getResponseMessage());

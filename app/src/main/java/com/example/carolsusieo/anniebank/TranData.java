@@ -1,9 +1,6 @@
 package com.example.carolsusieo.anniebank;
 
-import android.content.SharedPreferences;
-import android.widget.TextView;
 
-//import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -11,14 +8,20 @@ import java.util.ArrayList;
  * data input, and required for a transaction
  */
 
-class TranData //implements Serializable
+class TranData
  {
     private String lastamt;
     private float lastamtfloat;
     private Boolean lastAmtSet = false;
+     private float lastHostAmt;
     private ArrayList<TranDataData> arrayListData;
 
-    private void changeLastAmt(Float in) {
+     TranData() {
+         arrayListData = new ArrayList<>();
+
+     }
+
+     private void changeLastAmt(Float in) {
         if (lastAmtSet) {
             // if it wasn't set to begin with, don't do this.
             lastamtfloat -= in;
@@ -27,24 +30,20 @@ class TranData //implements Serializable
     }
 
     public String getLastAmt() { return lastamt;}
+     public Float getLastAmtFloat() { return lastamtfloat;}
+
+
     public void setLastAmt(String in) { lastamt = in;
         if(in!= null && !in.contentEquals("unknown"))
             lastAmtSet = true;
     }
-    public void setLastAmt(Float in) {
-        lastamtfloat = in;
-        setLastAmt(Float.toString(lastamtfloat));
-    }
-
-    //private ArrayList<TransactionData> arrayList;
-    //public ArrayList<TransactionData> getTranArray(){return arrayList;}
+     public void setLastAmt(Float in) {
+         lastamtfloat = in;
+         setLastAmt(Float.toString(lastamtfloat));
+     }
 
     public ArrayList<TranDataData> getTranArrayData() { return arrayListData;}
 
-    TranData() {
-//        arrayList = new ArrayList<>();
-        arrayListData = new ArrayList<>();
-    }
 
     public int getNumStoredTrans() {return arrayListData.size();}
 
@@ -54,7 +53,6 @@ class TranData //implements Serializable
         item.putAmount(transactionDataIn.getAmount());
         item.putCurrency(transactionDataIn.getCurrency());
         item.putDesc(transactionDataIn.getDesc());
- //       arrayList.add(item);
         arrayListData.add(item.getDataStruct());
         // update the amount...
         float f = Float.valueOf(item.getAmount());
@@ -67,7 +65,6 @@ class TranData //implements Serializable
         int num = arrayListData.size();
         TransactionData transactionData = new TransactionData();
         for(int i = 0;i < num;i++) {
-   //        transactionData = arrayList.get(i);
             transactionData.putDataStruct(arrayListData.get(i));
             float f = Float.valueOf(transactionData.getAmount().trim());
             amt += f;
@@ -88,12 +85,19 @@ class TranData //implements Serializable
     }
     // this assumes we just sent the FIFO stored transaction
     public void decStoredTrans(){
-//        arrayList.remove(0);
         arrayListData.remove(0);
     }
+
+    // a remake of stored trans after we have deleted some is going to change the
+     // amount
+     public void holdLastAmt() {
+         // this is the amount without the storedTrans;
+         lastHostAmt = lastamtfloat + getValueOfStoredTransactions();
+     }
+
     public void remakeStoredTrans(ArrayList<TranDataData> arrayIn) {
         arrayListData = arrayIn;
-        setLastAmt(getValueOfStoredTransactions());
-    }
+        setLastAmt(lastHostAmt - getValueOfStoredTransactions());
+      }
 }
 
